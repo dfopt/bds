@@ -213,28 +213,52 @@ if isfield(options, "alpha_init")
         %     end
         % end
 
-        % 提取非零元素计算初始点条件数 (Scale Ratio)
-        abs_x = abs(x0);
-        nz = abs_x(abs_x>0);
-        if isempty(nz)
-            r = 1;
+        % Extract nonzero elements to compute the initial-point scale ratio.
+        abs_x0 = abs(x0);
+        nonzero_abs_x0 = abs_x0(abs_x0 > 0);
+        if isempty(nonzero_abs_x0)
+            x0_scale_ratio = 1;
         else
-            r = max(nz)/min(nz);
+            x0_scale_ratio = max(nonzero_abs_x0) / min(nonzero_abs_x0);
         end
 
         for i = 1:n
-            val = abs_x(i);
-            if val == 0
+            abs_x0_i = abs_x0(i);
+            % We are handling initialization, where x0 is explicitly provided by the user.
+            % Using abs_x0_i == 0 cleanly distinguishes an exact origin input from an intentionally
+            % tiny but nonzero initial value.
+            if abs_x0_i == 0
                 alpha_vec(i) = 1;
-                elseif val <= 1
-                    alpha_vec(i) = max(val, options.StepTolerance(i)); % 微观变量永远保持原比例兜底
+            elseif abs_x0_i <= 1
+                % For small-scale variables, preserve the original scale with the StepTolerance 
+                % as the lower bound to prevent excessively small step sizes that may cause 
+                % premature termination.
+                alpha_vec(i) = max(abs_x0_i, options.StepTolerance(i));
+            else
+                % x0_scale_ratio is used as a coarse detector of coordinate scale heterogeneity.
+                %
+                % (x0_scale_ratio <= 100): relatively homogeneous scales.
+                % This regime is common in benchmark sets such as S2MPJ
+                % (https://github.com/GrattonToint/S2MPJ), where x0 may be a distant but
+                % uniformly scaled anchor (e.g., [1e5, 1e5, ..., 1e5]). In this case, using the
+                % full local scale (abs_x0_i) keeps long-range progress efficient.
+                %
+                % (x0_scale_ratio > 100): highly heterogeneous scales.
+                % This regime is common in benchmark sets such as MatCUTEst
+                % (https://github.com/matcutest), where variables may differ by several orders of
+                % magnitude (e.g., [0.02, 4000, 250]). Using abs_x0_i directly can cause
+                % overshooting and excessive shrink updates.
+                %
+                % The logarithmic mapping reduces overly large initial steps while preserving
+                % monotonic scaling. The "1 +" intercept guarantees C^0 continuity at the
+                % micro-macro boundary (|x_i| = 1). We use log10 (not ln) because it provides 
+                % stronger damping at large magnitudes, and base 10 matches physical orders of 
+                % magnitude.
+                if x0_scale_ratio <= 100
+                    alpha_vec(i) = abs_x0_i;
                 else
-                    % 宏观变量双轨制
-                    if r <= 100
-                        alpha_vec(i) = val; % S2MPJ 模式：保留 100% 步长，一击回城！
-                    else
-                        alpha_vec(i) = 1 + log10(val); % Matcutest 模式：开启极度防越界阻尼！
-                    end
+                    alpha_vec(i) = 1 + log10(abs_x0_i);
+                end
             end
         end
         options.alpha_init=alpha_vec;
@@ -303,8 +327,8 @@ end
 % determined solely by user input.
 % We define a list of fields that have been handled manually above.
 manual_fields = {'MaxFunctionEvaluations', 'Algorithm', 'direction_set', 'num_blocks', ...
-                 'StepTolerance', 'batch_size', 'replacement_delay', 'block_visiting_pattern', ...
-                 'alpha_init', 'is_noisy', 'expand', 'shrink', 'grouped_direction_indices'};
+                'StepTolerance', 'batch_size', 'replacement_delay', 'block_visiting_pattern', ...
+                'alpha_init', 'is_noisy', 'expand', 'shrink', 'grouped_direction_indices'};
 
 % For the remaining fields, set default values using get_default_constant if they are missing.
 % We iterate through field_list to maintain the order defined in bds.m.
