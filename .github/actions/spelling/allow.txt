@@ -216,6 +216,8 @@ Brezinski
 Brilli
 BROWNAL
 Broyden
+bse
+bss
 bstep
 bsum
 Buc
@@ -312,12 +314,14 @@ computerj
 comse
 Conejo
 config
+conda
 cong
 conjugu
 contmath
 contourf
 coprod
 copyfile
+cov
 cpc
 Cristofari
 cron
@@ -469,6 +473,7 @@ edu
 eede
 eference
 efg
+ECKERLE
 Efstathiou
 Ehlert
 eigen
@@ -1012,6 +1017,7 @@ linkcolor
 linspace
 linux
 Linux
+lipschitz
 Lipschitzian
 littlered
 Liuzzi
@@ -1050,6 +1056,7 @@ lrcorner
 LRCOVTYPE
 lscape
 lsh
+lsqminnorm
 lstset
 ltimes
 Lubberts
@@ -1148,6 +1155,7 @@ Mikaitis
 mindim
 minfhist
 Mirsky
+MISRA
 mjdp
 mkdir
 mlist
@@ -1215,6 +1223,7 @@ nelder
 Nelder
 nelder 
 NELDERMEAD
+NELSONLS
 nemann
 Nemirovsky
 neq
@@ -1333,6 +1342,7 @@ optl
 orderx
 orie
 osborne
+OSBORNEA
 OSCIPATH
 oslash
 otimes
@@ -1404,6 +1414,7 @@ pjams
 pjm
 Planiden
 Plemmons
+plib
 plibs
 plist
 Ploskas
@@ -1796,6 +1807,7 @@ supsetneq
 supsetneqq
 Svaiter
 svd
+svds
 svva
 swarrow
 sys
@@ -2085,15 +2097,3 @@ Zikrin
 zlabel
 Zmat
 Zur
-bse
-bss
-conda
-cov
-ECKERLE
-lipschitz
-lsqminnorm
-MISRA
-NELSONLS
-OSBORNEA
-plib
-svds
