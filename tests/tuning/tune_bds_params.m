@@ -14,6 +14,7 @@ options = struct();
 options.rhobeg = rhobeg;
 options.rhoend = rhoend;
 options.maxfun = maxfun;
+options.output_xhist = true; % Enable history tracking of x values
 
 % =========================================================================
 % 1. Optimization Phase
@@ -31,9 +32,9 @@ f_min = fopt;
 % =========================================================================
 % 2. Data Logging Phase
 % =========================================================================
-time_str = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm'));
-time_str = trim_time(time_str); 
-subfolder_name = strcat(time_str, "_", plibs, "_", num2str(options.maxfun));
+time_str = char(datetime('now', 'Format', 'yy_MM_dd_HH_mm'));
+subfolder_name = sprintf('cbds_tuning_expand_shrink_%d_%d_%d_%s_%s', ...
+    mindim, maxdim, options.maxfun, plibs, time_str);
 
 current_path = mfilename("fullpath");
 path_current_dir = fileparts(current_path);
@@ -62,12 +63,36 @@ best_value_record = strjoin(string(xopt(:)'), ', ');
 fprintf(fileID, 'optimized_value: %s\n', best_value_record);
 fprintf(fileID, 'optimized_fval: %f\n\n', fopt);
 
-% Record bobyqa output structure
+% Extract and print xhist and fhist together
+has_history = isfield(output_tuning, 'xhist') && isfield(output_tuning, 'fhist');
+if has_history
+    fprintf(fileID, 'xhist & fhist:\n');
+    x_trans = output_tuning.xhist';
+    f_vec = output_tuning.fhist(:);
+    
+    rows = min(size(x_trans, 1), length(f_vec));
+    cols = size(x_trans, 2);
+    
+    for row = 1:rows
+        for col = 1:cols
+            fprintf(fileID, '%-15s', num2str(x_trans(row, col)));
+        end
+        fprintf(fileID, '%-15s\n', num2str(f_vec(row)));
+    end
+end
+
+% Record the rest of bobyqa output structure
 output_tuning_saved = trim_struct(output_tuning); 
 output_fields = fieldnames(output_tuning_saved);
 
 for i = 1:numel(output_fields)
     field = output_fields{i};
+    
+    % Skip xhist and fhist as they are already printed
+    if has_history && (strcmp(field, 'xhist') || strcmp(field, 'fhist'))
+        continue;
+    end
+    
     value = output_tuning_saved.(field);
     
     if ~iscell(value)
@@ -77,10 +102,12 @@ for i = 1:numel(output_fields)
                 fprintf(fileID, '%s: %s\n', field, val_str);
             elseif ismatrix(value)
                 fprintf(fileID, '%s:\n', field);
-                [rows, cols] = size(value);
+                % Transpose the matrix to print row by row with left alignment
+                val_trans = value';
+                [rows, cols] = size(val_trans);
                 for row = 1:rows
                     for col = 1:cols
-                        fprintf(fileID, '%-10s     ', num2str(value(row, col)));
+                        fprintf(fileID, '%-15s', num2str(val_trans(row, col)));
                     end
                     fprintf(fileID, '\n');
                 end
@@ -118,3 +145,5 @@ tuning_optiprofiler(parameters_perfprof, options_perfprof);
 
 options_perfprof.feature_name = 'linearly_transformed';
 tuning_optiprofiler(parameters_perfprof, options_perfprof);
+
+end
